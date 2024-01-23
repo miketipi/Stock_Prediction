@@ -8,6 +8,8 @@ from pyspark.sql.functions import col, concat, lit, to_json, struct
 from pyspark.sql.types import *
 from pyspark.sql import functions as f
 
+
+
 scala_version = '2.12'  # your scala version
 spark_version = '3.5.0' # your spark version
 packages = [
@@ -39,67 +41,45 @@ columns = ["time","open","high","low","close","volume","ticker"]
 streamRawDf = spark.readStream.format("kafka").option("kafka.bootstrap.servers", kafka_server).option("subscribe", topic_name).load()
 streamDF = streamRawDf.select(f.from_json(f.col("value").cast("string"), schema).alias("parsed_value"))
 parseDF = streamDF.select(f.col("parsed_value.*"))
-jsonDF = parseDF.withColumn("value", to_json(struct(columns)))
 
-db = "stock_predict"
-connection_string = "mongodb://localhost:27017"
-collecion = "prediction"
+stream_writer = (parseDF.writeStream.queryName("stream_test").trigger(processingTime="5 seconds").outputMode("append").format("memory"))
+query1 = stream_writer.start()
 
-# stream_writer1 = (parseDF.writeStream
-#   .queryName("stock_predict")
-#   .trigger(continuous="5 seconds")
-#   .format("mongodb")
-#   .option("checkpointLocation", "/tmp/pyspark/")
-#   .option("forceDeleteTempCheckpointLocation", "true")
-#   .option("spark.mongodb.connection.uri",connection_string)
-#   .option("spark.mongodb.database", db)
-#   .option("spark.mongodb.collection", collecion)
-#   .outputMode("append")
-# )
-# query1 = stream_writer1.start()
+import model
 
+result1 = spark.sql(f"SELECT * from {query1.name}")
+
+
+df_pre = model.predict(result1)
+
+
+
+# result1 = pre_process(result1)
+# predictions = model.transform(result1)
 # for x in range(0, 2000):
 #     try:
-#         # print("Showing live view refreshed every 5 seconds")
-#         # print(f"Seconds passed: {x*5}")
-#         # result1 = spark.sql(f"SELECT * from {query1.name}")
-#         # display(result1.toPandas())
-#         # clear_output(wait=True)
-#         print("Write to MongoDB")
+#         result1 = spark.sql(f"SELECT * from {query1.name}")
+
+#         result1 = pre_process(result1)
+#         predictions = model.transform(result1)
+
+#         display(predictions.select("Item_Identifier", "Item_Weight", "Item_Visibility", "Item_MRP", "Outlet_Establishment_Year", "prediction").toPandas())
 #         sleep(5)
+#         clear_output(wait=True)
 #     except KeyboardInterrupt:
 #         print("break")
 #         break
 # print("Live view ended...")
 
-# def write_mongo_row(df, epoch_id):
-#     mongoURL = "mongodb://localhost:27017/stock_predict.prediction"
-#     df.write.format("mongo").mode("append").option("uri",mongoURL).save()
-#     pass
 
-# query=parseDF.writeStream.foreachBatch(write_mongo_row).start()
+# data_close = parseDF.select(f.col("close")).toPandas().values
 
 
-# def save(message, epoch_id):
-#     # message.write \
-#     #     .format("mongodb") \
-#     #     .mode("append") \
-#     #     .option("database", db) \
-#     #     .option("collection", collecion) \
-#     #     .save()
-#     message.write\
-#         .format("mongodb")\
-#         .option("spark.mongodb.database", db)\
-#         .option("spark.mongodb.collection", collecion)\
-#         .mode("append")\
-#         .save()
-#     pass
+# df_pre = model.predict(data_close)
 
-# query = parseDF\
-#     .writeStream \
-#     .foreachBatch(save) \
-#     .start()
 
+
+jsonDF = parseDF.withColumn("value", to_json(struct(columns)))
 
 
 query = jsonDF.selectExpr("CAST(value AS STRING)") \

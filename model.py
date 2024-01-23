@@ -37,6 +37,7 @@ def pre_process(data, data_scaled):
         y.append(data_scaled[i, 0])
 
     X, y = np.array(X), np.array(y)
+    # print(X)
 
     X = np.reshape(X, (X.shape[0], X.shape[1], 1))
     
@@ -79,17 +80,20 @@ def train(data_train):
 def predict(data_test):
     model_load= init_model()
     model_load.load_weights("./model/mymodel.h5")
-
+    # data_test.show()
     test_set = data_test.select(f.col("close")).toPandas().values
     pre_data = training_set[len(training_set)-60:]
     dataset_test = np.concatenate((pre_data, test_set), axis=0)
-
+    
     test_scaled = scaler.transform(dataset_test)
+    # print(test_scaled)
     X_test, y_test = pre_process(dataset_test, test_scaled)
 
     y_pre= model_load.predict(X_test)
 
-    a = spark.createDataFrame([(float(l[0]),) for l in y_pre], ['predict`'])
+    predicted_stock_price = scaler.inverse_transform(y_pre)
+
+    a = spark.createDataFrame([(float(l[0]),) for l in predicted_stock_price], ['prediction'])
     # a.show()
 
     # #add 'sequential' index and join both dataframe to get the final result
@@ -98,7 +102,8 @@ def predict(data_test):
 
     final_df = a.join(b, a.row_idx == b.row_idx).\
                 drop("row_idx")
-    # final_df.show()
+    print(len(final_df.toPandas()))
+    
 
     return final_df
 

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Prediction Dashboard</title>
+</head>
+<body>
+    <h1>Stock Prediction Dashboard</h1>
+    <p id="stock-data"></p>
+
+    <script>
+        const eventSource = new EventSource('/stream');
+        const stockDataElement = document.getElementById('stock-data');
+
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            stockDataElement.innerHTML = `Latest Stock Data: ${JSON.stringify(data)}`;
+        };
+    </script>
+</body>
+</html>

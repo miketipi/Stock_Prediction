@@ -4,19 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Prediction Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <h1>Stock Prediction Dashboard</h1>
-    <p id="stock-data"></p>
+    <div id="live-update-text">Stock Price Dashboard</div>
+    <div id="live-update-graph"></div>
 
     <script>
-        const eventSource = new EventSource('/stream');
-        const stockDataElement = document.getElementById('stock-data');
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    var dates = data['index'];
+                    var closePrices = data['data'][data['columns'].indexOf('Close')];
 
-        eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            stockDataElement.innerHTML = `Latest Stock Data: ${JSON.stringify(data)}`;
-        };
+                    document.getElementById('live-update-text').innerText = 'Last update: ' + new Date();
+
+                    var trace = {
+                        type: 'scatter',
+                        mode: 'lines',
+                        x: dates,
+                        y: closePrices,
+                        name: 'Stock Prices',
+                    };
+
+                    var layout = {
+                        title: 'Stock Prices',
+                        xaxis: { title: 'Date' },
+                        yaxis: { title: 'Close Price' },
+                    };
+
+                    Plotly.newPlot('live-update-graph', [trace], layout);
+                });
+        }
+
+        setInterval(updateData, 1000);
     </script>
 </body>
 </html>

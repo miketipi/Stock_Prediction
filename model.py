@@ -2,10 +2,12 @@ import numpy as np
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
-import tensorflow as tf
+from pyspark.sql.functions import monotonically_increasing_id, row_number
+from pyspark.sql import Window
+# import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dropout, Dense
-from tensorflowonspark import TFCluster
+
 from sklearn.preprocessing import MinMaxScaler
 
 import os.path
@@ -78,7 +80,7 @@ def predict(data_test):
     model_load= init_model()
     model_load.load_weights("./model/mymodel.h5")
 
-    test_set = data_test.select("close").toPandas().values
+    test_set = data_test.select(f.col("close")).toPandas().values
     pre_data = training_set[len(training_set)-60:]
     dataset_test = np.concatenate((pre_data, test_set), axis=0)
 
@@ -87,7 +89,18 @@ def predict(data_test):
 
     y_pre= model_load.predict(X_test)
 
-    return y_pre
+    a = spark.createDataFrame([(float(l[0]),) for l in y_pre], ['predict`'])
+    # a.show()
+
+    # #add 'sequential' index and join both dataframe to get the final result
+    a = a.withColumn("row_idx", row_number().over(Window.orderBy(monotonically_increasing_id())))
+    b = data_test.withColumn("row_idx", row_number().over(Window.orderBy(monotonically_increasing_id())))
+
+    final_df = a.join(b, a.row_idx == b.row_idx).\
+                drop("row_idx")
+    # final_df.show()
+
+    return final_df
 
 
 

@@ -1,37 +1,53 @@
-from flask import Flask, render_template
-import pandas as pd
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objs as go
-import json
-import threading
+from flask import Flask, render_template, jsonify
+import numpy as np
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 import time
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
-csv_file_path = 'test_data.csv'
-stock_data = pd.read_csv(csv_file_path)
+# client = MongoClient("localhost:27017")
+# db = client['database'] # mày thay tên database mình vào nha Nhân
 
-def update_data():
-    global stock_data
-    while True:
-        new_data = pd.read_csv(csv_file_path)
+def generate_plot(actual_prices, predicted_prices):
+    plt.figure(figsize=(10, 6))
+    plt.plot(actual_prices, marker='o', linestyle='-', color='b', label='Actual Price')
+    plt.plot(predicted_prices, marker='o', linestyle='-', color='r', label='Predicted Price')
+    plt.title('Stock Price Movement')
+    plt.xlabel('Days')
+    plt.ylabel('Price')
+    plt.grid(True)
+    plt.legend()
 
-        stock_data = new_data
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    
+    image_png = buffer.getvalue()
+    buffer.close()
+    graph = base64.b64encode(image_png).decode('utf-8')
 
-        time.sleep(1)  
-
-update_thread = threading.Thread(target=update_data)
-update_thread.start()
+    return graph
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/data')
-def get_data():
-    global stock_data
-    return stock_data.to_json(orient='split')
+# @app.route('/update_prediction')
+# def update_prediction():
+#     predicted_price = db['stocks'].find_one()['predicted_price']
+#     return jsonify({'predicted_price': predicted_price})
+
+@app.route('/update_plot')
+def update_plot():
+    days = np.arange(1, 31)
+    actual_prices = 100 + 2 * days + np.random.normal(0, 10, size=len(days))
+    predicted_prices = 110 + 2.1 * days + np.random.normal(0, 5, size=len(days)) 
+    
+    graph = generate_plot(actual_prices, predicted_prices)
+    return graph
 
 if __name__ == '__main__':
     app.run(debug=True)

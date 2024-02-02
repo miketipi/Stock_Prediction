@@ -3,42 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Prediction Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>Stock Market Interface</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <div id="live-update-text">Stock Price Dashboard</div>
-    <div id="live-update-graph"></div>
-
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Stock Price Movement</h2>
+                <div id="plot-container"></div>
+            </div>
+        </div>
+    </div>
     <script>
-        function updateData() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    var dates = data['index'];
-                    var closePrices = data['data'][data['columns'].indexOf('Close')];
-
-                    document.getElementById('live-update-text').innerText = 'Last update: ' + new Date();
-
-                    var trace = {
-                        type: 'scatter',
-                        mode: 'lines',
-                        x: dates,
-                        y: closePrices,
-                        name: 'Stock Prices',
-                    };
-
-                    var layout = {
-                        title: 'Stock Prices',
-                        xaxis: { title: 'Date' },
-                        yaxis: { title: 'Close Price' },
-                    };
-
-                    Plotly.newPlot('live-update-graph', [trace], layout);
-                });
+        function updatePlot() {
+            $.get("/update_plot", function(data) {
+                $("#plot-container").html('<img src="data:image/png;base64,' + data + '">');
+            });
         }
-
-        setInterval(updateData, 1000);
+        $(document).ready(function() {
+            setInterval(updatePlot, 1000);
+        });
     </script>
 </body>
 </html>

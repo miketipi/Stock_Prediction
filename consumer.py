@@ -50,7 +50,7 @@ kafka_server = 'localhost:9092'
 producer = KafkaProducer(bootstrap_servers=kafka_server,value_serializer = lambda x:dumps(x).encode('utf-8'))
 import model
 
-for x in range(0, 2000):
+for x in range(0, 300):
     try:
         result1 = spark.sql(f"SELECT * from {query1.name}")
         if (len(result1.toPandas()) !=0):

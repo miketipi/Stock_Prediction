@@ -13,6 +13,7 @@ def main():
     
     _model = model.train(train_data)
     y_pre = model.predict(test_data)
+    # model.img_predict()
     print(y_pre)
 
 

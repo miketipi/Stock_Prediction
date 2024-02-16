@@ -156,5 +156,5 @@ def img_predict(y_test, y_pre):
     plt.xlabel('Time')
     plt.ylabel('Stock Price')
     plt.legend()
-    plt.savefig('./img/LSTM_result.jpg')
+    plt.savefig('./static/LSTM_result.jpg')
     plt.show()
